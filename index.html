@@ -12,7 +12,7 @@
 <pre style="border:solid 1px black;"><input id="portrait1" type="checkbox" onchange="redraw();">portrait</pre>
 <pre id="data1" contenteditable="true" style="border:solid 1px black;">
 data
-0.0 0.0
+0.0 -10.0
 0.1 1.2
 
 0.2 2.0
@@ -31,6 +31,10 @@ data
 intervals
 0.1 1
 </pre>
+<pre id="bestfit1" contenteditable="true" style="border:solid 1px black;">
+line of best fit
+0.0 0.0
+</pre>
 </div>
 
 <script>
@@ -41,6 +45,7 @@ canvas = document.getElementById("canvas1");
 data = document.getElementById("data1");
 intervals = document.getElementById("intervals1");
 portrait = document.getElementById("portrait1");
+bestfit = document.getElementById("bestfit1");
 ctx = canvas1.getContext("2d");
 
 ppi = 300;
@@ -57,9 +62,9 @@ set_size = (can, grid) => {
 	// FIXME: is using constant value kinda a bodge here? its good enough for just A4
 	line_spacing = ((11.69 * ppi) - padding * 2) / (14 * 10);
 };
-set_size([11.69, 8.27], [14, 9]);
 
-parse = (str) => str.replaceAll("\n", ",").split(",").map(x => x.trim()).filter(x => x != "")
+parse = (str) => str.replaceAll("\n", ",").replaceAll("\t", " ")
+	.split(",").map(x => x.trim()).filter(x => x != "")
 	.map(x => x.split(" ").filter(x => x.trim() != "").map(x => parseFloat(x)).filter((x) => !isNaN(x)))
 	.filter(x => x.length >= 2);
 
@@ -99,6 +104,7 @@ drawgrid = () => {
 redraw = () => {
 	if(data.innerText.trim() === "") data.innerText = "data\n1.0 1.0";
 	if(intervals.innerText.trim() === "") intervals.innerText = "intervals\n1.0 1.0";
+	if(bestfit.innerText.trim() === "") bestfit.innerText = "line of best fit\n0.0 0.0";
 
 	portrait.checked ? set_size([8.27, 11.69], [9, 14]) : set_size([11.69, 8.27], [14, 9]);
 
@@ -117,6 +123,12 @@ redraw = () => {
 		x_scale = (line_spacing * 10) / pt[0];
 		y_scale = (line_spacing * 10) / pt[1];
 		y_interval = pt[1];
+	});
+
+	parse(bestfit.innerText).forEach(pt => {
+		ctx.lineWidth = 5;
+		if (pt.length >= 4) drawline(0, 0, pt[2] * x_scale, pt[3] * y_scale);
+		else drawline(0, 0, pt[0] * x_scale * 100, pt[1] * y_scale * 100);
 	});
 
 	parse(data.innerText).forEach(pt => {
