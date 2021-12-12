@@ -13,23 +13,26 @@
 <pre id="data1" contenteditable="true" style="border:solid 1px black;">
 data
 0.0 -10.0
-0.1 1.2
+0.5 -10.0
+7.0 -10.0
+7.5 -10.0
+8.0 -10.0
 
-0.2 2.0
-0.3 2.4
-
-0.4 3.1
-0.5 3.9
-
-0.6 4.4
-0.7 5.4
-
-0.8 5.9
-0.9 6.5
-</pre>
+1.0 0.08
+1.5 0.13
+2.0 0.17
+2.5 0.21
+3.0 0.25
+3.5 0.29
+4.0 0.33
+4.5 0.38
+5.0 0.38
+5.5 0.39
+6.0 0.40
+6.5 0.41</pre>
 <pre id="intervals1" contenteditable="true" style="border:solid 1px black;">
 intervals
-0.1 1
+1 0.05
 </pre>
 <pre id="bestfit1" contenteditable="true" style="border:solid 1px black;">
 line of best fit
@@ -49,7 +52,9 @@ bestfit = document.getElementById("bestfit1");
 ctx = canvas1.getContext("2d");
 
 ppi = 300;
-padding = 300; // 150;
+padding = 200; // 150;
+grid_chunks_w = 14 - 1;
+grid_chunks_h = 9 - 1;
 
 set_size = (can, grid) => {
 	canvas.width = can[0] * ppi;
@@ -60,7 +65,7 @@ set_size = (can, grid) => {
 	grid_width = grid[0] * 10; // in lines
 	grid_height = grid[1] * 10; // in lines
 	// FIXME: is using constant value kinda a bodge here? its good enough for just A4
-	line_spacing = ((11.69 * ppi) - padding * 2) / (14 * 10);
+	line_spacing = ((11.69 * ppi) - padding * 2) / (grid_chunks_w * 10);
 };
 
 parse = (str) => str.replaceAll("\n", ",").replaceAll("\t", " ")
@@ -106,7 +111,7 @@ redraw = () => {
 	if(intervals.innerText.trim() === "") intervals.innerText = "intervals\n1.0 1.0";
 	if(bestfit.innerText.trim() === "") bestfit.innerText = "line of best fit\n0.0 0.0";
 
-	portrait.checked ? set_size([8.27, 11.69], [9, 14]) : set_size([11.69, 8.27], [14, 9]);
+	portrait.checked ? set_size([8.27, 11.69], [grid_chunks_h, grid_chunks_w]) : set_size([11.69, 8.27], [grid_chunks_w, grid_chunks_h]);
 
 	ctx.fillStyle = "#ffffffff";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -126,9 +131,18 @@ redraw = () => {
 	});
 
 	parse(bestfit.innerText).forEach(pt => {
-		ctx.lineWidth = 5;
+		ctx.lineWidth = 6;
 		if (pt.length >= 4) drawline(0, 0, pt[2] * x_scale, pt[3] * y_scale);
 		else drawline(0, 0, pt[0] * x_scale * 100, pt[1] * y_scale * 100);
+
+		if(pt.length >= 6) {
+			let grad = (pt[3] / pt[2]);
+			let x1 = pt[4] * x_scale, x2 = pt[5] * x_scale;
+			let y1 = pt[4] * grad * y_scale, y2 = pt[5] * grad * y_scale;
+			// let delta = "\u0394"
+			drawline(x2, y1, x2, y2);
+			drawline(x1, y1, x2, y1);
+		}
 	});
 
 	parse(data.innerText).forEach(pt => {
@@ -139,10 +153,21 @@ redraw = () => {
 		ctx.fillStyle = "black";
 		ctx.font = "50px sans-serif";
 		ctx.fillText(pt[0].toFixed(1), x - 30, 80);
-		//ctx.fillText(pt[1].toFixed(1), -100, -y);
 		ctx.restore();
 	});
 
+	let y_val = 0;
+	for (let y = 0; y <= (grid_height / 10); y += 1) {
+		ctx.save();
+		ctx.scale(1, -1);
+		ctx.fillStyle = "black";
+		ctx.font = "50px sans-serif";
+		ctx.fillText(y_val.toFixed(2), -120, -y * y_interval * y_scale);
+		ctx.restore();
+
+		y_val += y_interval;
+	}
+	/*
 	let y_val = 0;
 	for (let y = 0; y < (grid_height + 1) * line_spacing; y += y_scale) {
 		ctx.save();
@@ -154,6 +179,7 @@ redraw = () => {
 
 		y_val += y_interval;
 	}
+	*/
 
 	ctx.restore();
 };
