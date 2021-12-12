@@ -5,44 +5,63 @@
 </head>
 <body>
 
-<canvas id="canvas1" style="border:solid 1px black; width:fill; float:left;" width="297" height="210">
+<canvas id="canvas1" style="border:solid 1px black; float:left;">
 </canvas>
 
-<div style="border:solid 1px black; width:fill; float:right;">
+<div style="border:solid 1px black; width:fill; float:left;">
+<pre style="border:solid 1px black;"><input id="portrait1" type="checkbox" onchange="redraw();">portrait</pre>
 <pre id="data1" contenteditable="true" style="border:solid 1px black;">
+data
 0.0 0.0
-
 0.1 1.2
 
 0.2 2.0
-
 0.3 2.4
 
 0.4 3.1
-
 0.5 3.9
 
 0.6 4.4
-
 0.7 5.4
 
 0.8 5.9
-
 0.9 6.5
 </pre>
-<!--input type="text" id="data1"></input-->
+<pre id="intervals1" contenteditable="true" style="border:solid 1px black;">
+intervals
+0.1 1
+</pre>
 </div>
 
 <script>
 
-canvas = document.getElementById("canvas1");
-canvas.width = 297 * 3;
-canvas.height = 210 * 3;
-ctx = canvas1.getContext("2d");
-data = document.getElementById("data1");
+// A4 = 210mm x 297mm = 8.27in x 11.69in
 
-parse = () => data.innerText.replaceAll("\n", ",").split(",").map(x => x.trim()).filter(x => x != "")
-	.map(x => x.split(" ").filter(x => x != "").map(x => parseFloat(x)).filter(x => !isNaN(x)));
+canvas = document.getElementById("canvas1");
+data = document.getElementById("data1");
+intervals = document.getElementById("intervals1");
+portrait = document.getElementById("portrait1");
+ctx = canvas1.getContext("2d");
+
+ppi = 300;
+padding = 300; // 150;
+
+set_size = (can, grid) => {
+	canvas.width = can[0] * ppi;
+	canvas.height = can[1] * ppi;
+	canvas.style.width = (can[0] * 80).toString() + "px";
+	canvas.style.height = (can[1] * 80).toString() + "px";
+
+	grid_width = grid[0] * 10; // in lines
+	grid_height = grid[1] * 10; // in lines
+	// FIXME: is using constant value kinda a bodge here? its good enough for just A4
+	line_spacing = ((11.69 * ppi) - padding * 2) / (14 * 10);
+};
+set_size([11.69, 8.27], [14, 9]);
+
+parse = (str) => str.replaceAll("\n", ",").split(",").map(x => x.trim()).filter(x => x != "")
+	.map(x => x.split(" ").filter(x => x.trim() != "").map(x => parseFloat(x)).filter((x) => !isNaN(x)))
+	.filter(x => x.length >= 2);
 
 drawline = (x, y, u, v) => {
 	ctx.beginPath();
@@ -53,70 +72,82 @@ drawline = (x, y, u, v) => {
 };
 
 drawcross = (x, y) => {
-	let s = 5;
+	let s = 15;
 	ctx.save();
 	ctx.translate(x, y);
-	//ctx.strokeStyle = "#00000000"
-	ctx.lineWidth = 1.5;
+	ctx.lineWidth = 5;
 	drawline(-s, -s, s, s);
 	drawline(s, -s, -s, s);
 	ctx.restore();
 };
 
 drawgrid = () => {
-	let s = 10;
+	let s = line_spacing;
 	let line = (x, y, w, h) => drawline(x, y, x + w, y + h);
+	let thick = (i) => i % 10 == 0 ? 3 : i % 5 == 0 ? 1.5 : 0.4;
 
-	// top right
-	let w = 80, h = 55;
-	for (let i = 0; i < w + 1; i++) {
-		ctx.lineWidth = i % 5 == 0 ? 1 : 0.4;
-		line(i * s, 0, 0, h * s);
+	for (let i = 0; i < grid_width + 1; i++) {
+		ctx.lineWidth = thick(i);
+		line(i * s, 0, 0, grid_height * s);
 	}
-	for (let i = 0; i < h + 1; i++) {
-		ctx.lineWidth = i % 5 == 0 ? 1 : 0.4;
-		line(0, i * s, w * s, 0);
-	}
-
-	if (false) for (let i = 0; i < 11; i++) {
-		let len = 10 * 10;
-		ctx.lineWidth = i % 5 == 0 ? 1 : 0.4;
-		// top left
-		line(0, i * s, -len, 0);
-		line(-i * s, 0, 0, len);
-		// bottom left
-		line(0, -i * s, -len, 0);
-		line(-i * s, 0, 0, -len);
-		// bottom right
-		line(0, -i * s, len, 0);
-		line(i * s, 0, 0, -len);
+	for (let i = 0; i < grid_height + 1; i++) {
+		ctx.lineWidth = thick(i);
+		line(0, i * s, grid_width * s, 0);
 	}
 };
 
 redraw = () => {
+	if(data.innerText.trim() === "") data.innerText = "data\n1.0 1.0";
+	if(intervals.innerText.trim() === "") intervals.innerText = "intervals\n1.0 1.0";
+
+	portrait.checked ? set_size([8.27, 11.69], [9, 14]) : set_size([11.69, 8.27], [14, 9]);
+
 	ctx.fillStyle = "#ffffffff";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	ctx.save();
-	ctx.translate(100 / 2, canvas.height - 100 / 2);
+	ctx.translate(padding, canvas.height - padding);
 	ctx.scale(1, -1)
 	drawgrid();
-	parse().forEach(x => {
-		drawcross(x[0] * 500, x[1] * 10)
-		// TODO: stroke text at gur bottom / sides of gur thing
+
+	let x_scale = line_spacing * 10, y_scale = line_spacing * 10;
+	let y_interval = 1;
+	parse(intervals.innerText).forEach(pt => {
+		pt[0] = pt[0] === 0 ? 1 : pt[0];
+		pt[1] = pt[1] === 0 ? 1 : pt[1];
+		x_scale = (line_spacing * 10) / pt[0];
+		y_scale = (line_spacing * 10) / pt[1];
+		y_interval = pt[1];
+	});
+
+	parse(data.innerText).forEach(pt => {
+		let x = pt[0] * x_scale, y = pt[1] * y_scale;
+		drawcross(x, y)
 		ctx.save();
 		ctx.scale(1, -1);
 		ctx.fillStyle = "black";
-		ctx.font = "16px sans-serif";
-		ctx.fillText(x[0].toString(), x[0] * 500 - 10, 20);
+		ctx.font = "50px sans-serif";
+		ctx.fillText(pt[0].toFixed(1), x - 30, 80);
+		//ctx.fillText(pt[1].toFixed(1), -100, -y);
 		ctx.restore();
 	});
+
+	let y_val = 0;
+	for (let y = 0; y < (grid_height + 1) * line_spacing; y += y_scale) {
+		ctx.save();
+		ctx.scale(1, -1);
+		ctx.fillStyle = "black";
+		ctx.font = "50px sans-serif";
+		ctx.fillText(y_val.toFixed(1), -120, -y);
+		ctx.restore();
+
+		y_val += y_interval;
+	}
+
 	ctx.restore();
 };
 
+window.onkeydown = window.onkeyup = redraw;
 redraw();
-
-// A4 = 210mm x 297mm
-// script goes here :D
 
 </script>
 </body>
