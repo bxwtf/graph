@@ -38,6 +38,18 @@ intervals
 line of best fit
 0.0 0.0
 </pre>
+<pre id="title1" contenteditable="true" style="border:solid 1px black;">
+title.
+</pre>
+</div>
+<div style="border:solid 1px black; width:fill; float:left;">
+<pre contenteditable="true" style="border:solid 1px black;">
+scrath pad
+
+
+
+
+</pre>
 </div>
 
 <script>
@@ -49,6 +61,8 @@ data = document.getElementById("data1");
 intervals = document.getElementById("intervals1");
 portrait = document.getElementById("portrait1");
 bestfit = document.getElementById("bestfit1");
+bestfit = document.getElementById("bestfit1");
+title = document.getElementById("title1");
 ctx = canvas1.getContext("2d");
 
 ppi = 300;
@@ -106,6 +120,12 @@ drawgrid = () => {
 	}
 };
 
+drawtext = (s, t, x, y) => {
+	ctx.fillStyle = "black";
+	ctx.font = s.toString() + "px sans-serif";
+	ctx.fillText(t, x, y);
+};
+
 redraw = () => {
 	if(data.innerText.trim() === "") data.innerText = "data\n1.0 1.0";
 	if(intervals.innerText.trim() === "") intervals.innerText = "intervals\n1.0 1.0";
@@ -115,6 +135,9 @@ redraw = () => {
 
 	ctx.fillStyle = "#ffffffff";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	drawtext(80, title.innerText.trim(), padding, 100);
+
 	ctx.save();
 	ctx.translate(padding, canvas.height - padding);
 	ctx.scale(1, -1)
